@@ -68,3 +68,47 @@ server {
     }
 }
 ```
+
+#### nginx.conf
+
+```
+user  nginx;
+worker_processes  auto;
+
+error_log  /var/log/nginx/error.log warn;
+pid        /var/run/nginx.pid;
+
+
+events {
+    worker_connections  8192;
+}
+
+
+http {
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
+
+    vhost_traffic_status_zone;
+    client_max_body_size 100m;
+    client_body_buffer_size 1024k;
+
+    log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                      '$status $body_bytes_sent "$http_referer" '
+                      '"$http_user_agent" "$http_x_forwarded_for" '
+                      '"$host" '
+                      '$request_time $upstream_response_time $upstream_connect_time $upstream_header_time';
+
+    access_log  /var/log/nginx/access.log  main;
+
+    sendfile        on;
+    #tcp_nopush     on;
+
+    # client_header_timeout 65;
+    # client_body_timeout 65;
+    keepalive_timeout  65;
+
+    #gzip  on;
+
+    include /etc/nginx/conf.d/*.conf;
+}
+```
