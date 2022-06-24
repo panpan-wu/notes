@@ -1,0 +1,26 @@
+node:
+  cluster: node_asr
+  id: node_asr_id
+
+dynamic_resources:
+  cds_config:
+    path: /etc/envoy/conf.d/cds.yaml
+  lds_config:
+    path: /etc/envoy/conf.d/lds.yaml
+
+admin:
+  profile_path: /var/log/envoy/envoy.prof
+  address:
+    socket_address:
+      address: 172.26.215.111
+      port_value: 9901
+
+stats_sinks:
+  - name: envoy.stat_sinks.statsd
+    typed_config:
+      "@type": type.googleapis.com/envoy.config.metrics.v3.StatsdSink
+      prefix: "envoy_asr_online"
+      address:
+        socket_address:
+          address: 172.26.215.110
+          port_value: 9125
