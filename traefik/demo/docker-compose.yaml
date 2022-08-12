@@ -1,0 +1,52 @@
+version: "3.8"
+
+services:
+  demo:
+    image: "demo:${TAG}"
+    configs:
+      - source: demo_config
+        target: /opt/demo/config.yaml
+    networks:
+      - "default_overlay"
+    stop_grace_period: 10m
+    logging:
+      driver: "syslog"
+      options:
+        syslog-address: "tcp://172.26.215.90:514"
+        syslog-facility: "local0"
+        syslog-format: "rfc5424"
+        tag: "demo"
+    deploy:
+      mode: replicated
+      replicas: 64
+      endpoint_mode: dnsrr
+      placement:
+        constraints:
+          - node.role==worker
+      restart_policy:
+        condition: "any"
+        delay: "5s"
+        window: "2s"
+      rollback_config:
+        parallelism: 32
+        delay: "1s"
+        order: "start-first"
+      update_config:
+        parallelism: 32
+        delay: "1s"
+        failure_action: "rollback"
+        order: "start-first"
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.demo.entrypoints=web"
+        - "traefik.http.routers.demo.rule=PathPrefix(`/demo/submit_task`)"
+        - "traefik.http.services.demo.loadbalancer.server.port=8000"
+
+configs:
+  demo_config:
+    name: demo_config.${CONFIG_MD5}
+    file: /opt/demo/config.yaml
+
+networks:
+  default_overlay:
+    external: true

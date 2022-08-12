@@ -1,0 +1,65 @@
+version: "3.8"
+
+networks:
+  default_overlay:
+    external: true
+
+services:
+  traefik:
+    image: traefik:v2.8
+    command:
+      - '--providers.docker=true'
+      - '--entrypoints.web.address=:80'
+      - '--entrypoints.dashboard.address=:81'
+      - '--providers.providersThrottleDuration=2s'
+      - '--providers.docker.watch=true'
+      - '--providers.docker.swarmMode=true'
+      - '--providers.docker.swarmModeRefreshSeconds=15s'
+      - '--providers.docker.exposedbydefault=false'
+      - '--accessLog.bufferingSize=0'
+      - '--api=true'
+      - '--api.insecure=false'
+      - '--api.dashboard=true'
+    ports:
+      - target: 80
+        published: 7000
+        protocol: tcp
+      - target: 81
+        published: 7010
+        protocol: tcp
+    volumes:
+      - '/var/run/docker.sock:/var/run/docker.sock:ro'
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role==manager
+      restart_policy:
+        condition: any
+        delay: 1s
+        max_attempts: 3
+        window: 120s
+      update_config:
+        delay: 1s
+        order: start-first
+        monitor: 30s
+        parallelism: 1
+      rollback_config:
+        parallelism: 1
+        order: start-first
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.api.service=api@internal"
+        - "traefik.http.routers.api.entrypoints=dashboard"
+        - "traefik.http.routers.api.rule=HostRegexp(`{any:.+}`)"
+        - "traefik.http.routers.api.middlewares=api-basic-auth"
+        - "traefik.http.middlewares.api-basic-auth.basicauth.users=asr:$$apr1$$4PGVT4gZ$$F1.SBl9/BMDntDZf9M3UN/"
+        - "traefik.http.services.api.loadbalancer.server.port=8080"
+    logging:
+      driver: json-file
+      options:
+        'max-size': '100m'
+        'max-file': '10'
+    networks:
+      - default_overlay
